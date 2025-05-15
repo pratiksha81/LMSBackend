@@ -1,0 +1,32 @@
+# Stage 1: Build
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+
+WORKDIR /src
+
+# Copy solution file
+COPY LMS/LMS.sln .
+
+# Copy project files
+COPY LMS/LMS/*.csproj ./LMS/
+COPY LMS/Infrastructure/*.csproj ./Infrastructure/
+COPY LMS/Application/*.csproj ./Application/
+COPY LMS/Domain/*.csproj ./Domain/
+
+# Restore dependencies
+RUN dotnet restore LMS.sln
+
+# Copy all project files
+COPY LMS/ .
+
+# Build and publish
+RUN dotnet publish LMS/LMS.csproj -c Release -o /app/publish
+
+# Stage 2: Runtime
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
+
+WORKDIR /app
+COPY --from=build /app/publish .
+
+EXPOSE 8000
+
+ENTRYPOINT ["dotnet", "LMS.dll"]
